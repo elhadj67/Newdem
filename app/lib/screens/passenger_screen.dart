@@ -86,7 +86,7 @@ class _PassengerScreenState extends ConsumerState<PassengerScreen> {
     ];
     return FlutterMap(
       mapController: _map,
-      options: const MapOptions(
+      options: MapOptions(
         initialCenter: LatLng(Config.dakarLat, Config.dakarLng),
         initialZoom: 12.5,
       ),

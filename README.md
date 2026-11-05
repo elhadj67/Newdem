@@ -1,7 +1,7 @@
 # Newdem
 
 Plateforme de VTC (voitures & motos) pour le Sénégal, avec paiement **Wave** et **Orange Money**.
-« Newdem » — *on passe vous prendre.*
+« Newdem » — *Allons-y !*
 
 ## Structure du dépôt
 

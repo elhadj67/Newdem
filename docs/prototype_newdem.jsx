@@ -248,7 +248,7 @@ export default function NewdemApp() {
       <div className="wrap">
         <aside className="pitch">
           <div className="logo">Newdem</div>
-          <div className="tag">On passe vous prendre.</div>
+          <div className="tag">Allons-y !</div>
           <p>Prototype cliquable du parcours passager : commande d'une voiture ou d'une moto,
              estimation transparente, suivi en direct et paiement Espèces, Wave ou Orange Money.
              Passez en <b>Mode Chauffeur</b> pour voir le portefeuille et le prélèvement de commission.</p>

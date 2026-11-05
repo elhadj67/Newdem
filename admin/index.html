@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Newdem — Administration KYC</title>
+<style>
+  :root{
+    --teal:#0B6E6E; --teal-d:#084F4F; --ink:#0E1B1B; --accent:#E4572E;
+    --cash:#12B886; --sand:#F4F8F7; --line:#E2ECEA; --muted:#6B7A78; --bg:#EAF1F0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif}
+  body{background:var(--bg);color:var(--ink);min-height:100vh}
+  a{color:var(--teal)}
+  .bar{display:flex;align-items:center;gap:16px;background:#fff;border-bottom:1px solid var(--line);
+    padding:12px 20px;position:sticky;top:0;z-index:5}
+  .logo{font-weight:800;font-size:20px;color:var(--teal);letter-spacing:-.5px}
+  .bar .sp{flex:1}
+  .bar input{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;width:230px}
+  .btn{border:0;border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px;cursor:pointer;
+    background:var(--teal);color:#fff}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:var(--sand);color:var(--teal)}
+  .btn.accent{background:var(--accent);color:#fff}
+  .btn.cash{background:var(--cash);color:#fff}
+  .btn.sm{padding:6px 10px;font-size:13px}
+  .wrap{max-width:1100px;margin:24px auto;padding:0 20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px}
+  .muted{color:var(--muted)}
+  /* login */
+  .login{max-width:380px;margin:80px auto;padding:28px}
+  .login h1{font-size:22px;margin-bottom:4px}
+  .login .tag{color:var(--accent);font-style:italic;margin-bottom:22px}
+  .field{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;
+    font-size:14px;margin:8px 0;background:var(--sand)}
+  .err{color:var(--accent);font-size:13px;margin-top:8px}
+  /* layout */
+  .grid{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .list h2,.detail h2{font-size:15px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);
+    cursor:pointer}
+  .row:last-child{border-bottom:0}
+  .row:hover{background:var(--sand)}
+  .row.sel{background:#F2FAF9;border-left:3px solid var(--teal)}
+  .row .n{font-weight:600;font-size:14px}
+  .row .s{font-size:12px;color:var(--muted)}
+  .pill{margin-left:auto;background:var(--sand);border-radius:999px;padding:3px 9px;font-size:11px;
+    color:var(--muted);font-weight:600}
+  .detail{padding:0 0 16px}
+  .dhead{padding:16px;border-bottom:1px solid var(--line)}
+  .dhead .name{font-size:18px;font-weight:700}
+  .status{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-top:6px}
+  .st-submitted{background:#E7F3F3;color:var(--teal)}
+  .st-approved{background:#E6F7EF;color:var(--cash)}
+  .st-rejected{background:#FCEBE5;color:var(--accent)}
+  .docs{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}
+  @media(max-width:560px){.docs{grid-template-columns:1fr}}
+  .doc{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .doc .cap{padding:10px 12px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px}
+  .doc .prev{background:var(--sand);min-height:150px;display:flex;align-items:center;justify-content:center;
+    border-top:1px solid var(--line)}
+  .doc .prev img{max-width:100%;max-height:220px;display:block}
+  .doc .prev .ph{color:var(--muted);font-size:13px;padding:20px;text-align:center}
+  .ok{color:var(--cash)} .no{color:var(--muted)}
+  .actions{display:flex;gap:10px;padding:0 16px 8px}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+    padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.2s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+// ---------------- état & config ----------------
+const store = {
+  get base(){ try{return localStorage.getItem('newdem_api')||'http://localhost:3000'}catch{ return this._b||'http://localhost:3000' } },
+  set base(v){ try{localStorage.setItem('newdem_api',v)}catch{ this._b=v } },
+  get token(){ try{return localStorage.getItem('newdem_admin_jwt')}catch{ return this._t } },
+  set token(v){ try{ v?localStorage.setItem('newdem_admin_jwt',v):localStorage.removeItem('newdem_admin_jwt') }catch{ this._t=v } },
+};
+let state = { phone:'+221', codeSent:false, pending:[], selected:null, detail:null, error:null };
+
+// ---------------- helpers réseau ----------------
+async function api(path, {method='GET', body, raw=false}={}){
+  const res = await fetch(store.base + path, {
+    method,
+    headers: {
+      ...(body?{'Content-Type':'application/json'}:{}),
+      ...(store.token?{'Authorization':'Bearer '+store.token}:{}),
+    },
+    body: body?JSON.stringify(body):undefined,
+  });
+  if(!res.ok){ const t = await res.text().catch(()=> ''); throw {status:res.status, message:t}; }
+  return raw ? res : res.json();
+}
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200); }
+
+// ---------------- auth ----------------
+async function requestCode(){
+  state.error=null;
+  try{ await api('/auth/otp/request',{method:'POST',body:{phone:state.phone}}); state.codeSent=true; }
+  catch(e){ state.error='Envoi du code impossible'; }
+  render();
+}
+async function verifyCode(code){
+  state.error=null;
+  try{
+    const r = await api('/auth/otp/verify',{method:'POST',body:{phone:state.phone,code}});
+    store.token = r.token;
+    await loadPending();       // 403 si le compte n'est pas admin
+  }catch(e){
+    store.token=null;
+    state.error = e.status===403 ? "Ce compte n'est pas administrateur." : 'Code invalide';
+    render();
+  }
+}
+function logout(){ store.token=null; state={...state, pending:[], detail:null, selected:null, codeSent:false}; render(); }
+
+// ---------------- données admin ----------------
+async function loadPending(){
+  const rows = await api('/admin/kyc/pending');
+  state.pending = rows; state.error=null;
+  render();
+}
+async function openDriver(id){
+  state.selected = id;
+  state.detail = null; render();
+  const d = await api('/admin/kyc/'+id);
+  state.detail = d; render();
+  // charger les aperçus des pièces (fetch authentifié -> blob)
+  for(const doc of d.documents){ loadPreview(id, doc.kind); }
+}
+async function loadPreview(driverId, kind){
+  try{
+    const res = await api(`/admin/kyc/${driverId}/documents/${kind}`, {raw:true});
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const el = document.getElementById('prev-'+kind);
+    if(!el) return;
+    if(blob.type==='application/pdf'){
+      el.innerHTML = `<a class="btn ghost sm" href="${url}" target="_blank">Ouvrir le PDF</a>`;
+    }else{
+      el.innerHTML = `<img src="${url}" alt="${kind}"/>`;
+    }
+  }catch(e){ /* pièce indisponible */ }
+}
+async function review(id, approved){
+  try{
+    await api('/admin/kyc/'+id+'/review',{method:'POST',body:{approved}});
+    toast(approved?'Dossier approuvé':'Dossier rejeté');
+    state.detail=null; state.selected=null;
+    await loadPending();
+  }catch(e){ toast('Action impossible'); }
+}
+
+// ---------------- rendu ----------------
+const DOCS = {id_card:"Carte d'identité",license:'Permis',registration:'Carte grise',insurance:'Assurance'};
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = store.token ? dashboard() : login();
+  wire();
+}
+
+function topbar(){
+  return `<div class="bar">
+    <span class="logo">Newdem</span><span class="muted" style="font-size:13px">Administration</span>
+    <span class="sp"></span>
+    <input id="apiBase" value="${store.base}" title="URL de l'API" />
+    ${store.token?'<button class="btn ghost sm" id="logout">Déconnexion</button>':''}
+  </div>`;
+}
+
+function login(){
+  return topbar() + `<div class="card login">
+    <h1>Console d'administration</h1>
+    <div class="tag">Revue des dossiers conducteurs</div>
+    <input class="field" id="phone" value="${state.phone}" placeholder="+221 77 000 00 00"/>
+    ${state.codeSent ? `
+      <input class="field" id="code" placeholder="Code à 6 chiffres" inputmode="numeric"/>
+      <button class="btn" id="verify" style="width:100%">Se connecter</button>
+    ` : `
+      <button class="btn" id="send" style="width:100%">Recevoir le code</button>
+    `}
+    ${state.error?`<div class="err">${state.error}</div>`:''}
+  </div>`;
+}
+
+function dashboard(){
+  return topbar() + `<div class="wrap"><div class="grid">
+    <div class="card list">
+      <h2>Dossiers en attente${state.pending.length?` · ${state.pending.length}`:''}</h2>
+      ${state.pending.length? state.pending.map(p=>`
+        <div class="row ${state.selected===p.driverId?'sel':''}" data-id="${p.driverId}">
+          <div>
+            <div class="n">${p.name||p.phone}</div>
+            <div class="s">${p.phone} · ${new Date(p.submittedAt).toLocaleDateString('fr')}</div>
+          </div>
+          <span class="pill">${p.documentCount} pièces</span>
+        </div>`).join('') : `<div class="empty">Aucun dossier en attente.</div>`}
+    </div>
+    <div class="card detail">${state.detail?detailView(state.detail):`<div class="empty">Sélectionnez un dossier à gauche.</div>`}</div>
+  </div></div>`;
+}
+
+function detailView(d){
+  return `<div class="dhead">
+      <div class="name">${d.name||d.phone}</div>
+      <div class="muted" style="font-size:13px">${d.phone}${d.vehicles?.length?` · ${d.vehicles.map(v=>v.type+' '+(v.plate||'')).join(', ')}`:''}</div>
+      <span class="status st-${d.kycStatus}">${d.kycStatus}</span>
+    </div>
+    <div class="docs">
+      ${['id_card','license','registration','insurance'].map(kind=>{
+        const doc = d.documents.find(x=>x.kind===kind);
+        return `<div class="doc">
+          <div class="cap">${doc && doc.verified?'<span class="ok">●</span>':(doc?'<span style="color:var(--teal)">●</span>':'<span class="no">○</span>')} ${DOCS[kind]}</div>
+          <div class="prev" id="prev-${kind}">${doc?'<span class="ph">Chargement…</span>':'<span class="ph">Non fournie</span>'}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="actions">
+      <button class="btn cash" data-review="approve" style="flex:2">Approuver le dossier</button>
+      <button class="btn accent" data-review="reject" style="flex:1">Rejeter</button>
+    </div>`;
+}
+
+// ---------------- câblage des événements ----------------
+function wire(){
+  const base = document.getElementById('apiBase');
+  if(base) base.onchange = e => { store.base = e.target.value.trim(); };
+  const phone = document.getElementById('phone');
+  if(phone) phone.oninput = e => state.phone = e.target.value;
+
+  const send = document.getElementById('send'); if(send) send.onclick = requestCode;
+  const verify = document.getElementById('verify');
+  if(verify) verify.onclick = () => verifyCode(document.getElementById('code').value.trim());
+  const logoutBtn = document.getElementById('logout'); if(logoutBtn) logoutBtn.onclick = logout;
+
+  document.querySelectorAll('.row[data-id]').forEach(r=>{
+    r.onclick = () => openDriver(r.dataset.id);
+  });
+  document.querySelectorAll('[data-review]').forEach(b=>{
+    b.onclick = () => review(state.selected, b.dataset.review==='approve');
+  });
+}
+
+render();
+</script>
+</body>
+</html>

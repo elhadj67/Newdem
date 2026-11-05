@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: newdem
+      POSTGRES_PASSWORD: newdem
+      POSTGRES_DB: newdem
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  # Routage self-host (données OSM Sénégal). Lancer d'abord ./osrm/prepare.sh
+  # pour générer les fichiers .osrm dans ./osrm/data, puis démarrer ce service.
+  # Régler ensuite OSRM_URL=http://localhost:5000 (ou http://osrm:5000 en réseau Docker).
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    command: osrm-routed --algorithm mld /data/senegal-latest.osrm
+    volumes: ["./osrm/data:/data"]
+    ports: ["5000:5000"]
+
+volumes:
+  pgdata:

@@ -1,0 +1,25 @@
+# Node / NestJS
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+
+# Prisma / runtime
+backend/storage/kyc/
+backend/osrm/data/
+
+# Flutter
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+*.iml
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

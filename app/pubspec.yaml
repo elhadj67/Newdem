@@ -1,0 +1,30 @@
+name: newdem_app
+description: Newdem — application VTC (voitures & motos) pour le Sénégal.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1       # état de l'application
+  dio: ^5.4.0                    # client HTTP
+  flutter_secure_storage: ^9.0.0 # stockage du JWT
+  socket_io_client: ^2.0.3+1     # temps réel (passerelle NestJS)
+  flutter_map: ^6.1.0            # carte OpenStreetMap (pas de clé Google)
+  latlong2: ^0.9.1
+  geolocator: ^11.0.0            # géolocalisation de l'appareil
+  file_picker: ^8.0.0            # sélection des pièces KYC (image/PDF)
+  connectivity_plus: ^6.0.0      # détection de l'état réseau
+  shared_preferences: ^2.2.0     # cache local (historique hors-ligne)
+  url_launcher: ^6.2.5           # ouverture des liens de paiement Wave/OM
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

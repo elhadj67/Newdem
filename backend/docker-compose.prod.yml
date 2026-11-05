@@ -1,0 +1,47 @@
+# Déploiement complet : API + PostGIS + Redis + OSRM.
+# Prérequis : un fichier .env (voir .env.example) avec les secrets de production,
+# et les données OSRM préparées (./osrm/prepare.sh) si le routage self-host est utilisé.
+#   docker compose -f docker-compose.prod.yml up -d --build
+services:
+  api:
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://newdem:newdem@db:5432/newdem?schema=public
+      OSRM_URL: http://osrm:5000
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: ["3000:3000"]
+    restart: unless-stopped
+    volumes:
+      - kyc:/app/storage/kyc        # pièces KYC (préférer S3 en prod)
+
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: newdem
+      POSTGRES_PASSWORD: newdem
+      POSTGRES_DB: newdem
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U newdem"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    command: osrm-routed --algorithm mld /data/senegal-latest.osrm
+    volumes: ["./osrm/data:/data"]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  kyc:

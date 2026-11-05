@@ -1,0 +1,39 @@
+# Règles d'alerte Newdem (à charger dans Prometheus / Alertmanager).
+groups:
+  - name: newdem-api
+    rules:
+      - alert: ApiDown
+        expr: up{job="newdem-api"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "API Newdem injoignable"
+          description: "La cible {{ $labels.instance }} ne répond plus depuis 1 min."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Taux d'erreurs 5xx élevé"
+          description: "Plus de 5% des requêtes échouent (5xx) depuis 5 min."
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Latence p95 > 1s"
+          description: "Le 95e percentile de latence dépasse 1s depuis 5 min."
+
+      - alert: NoTripsRequested
+        expr: increase(newdem_trips_requested_total[15m]) == 0
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Aucune course demandée depuis 15 min"
+          description: "Chute d'activité potentielle ou panne fonctionnelle."

@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+.github
+storage
+osrm/data
+package-lock.json
+**/*.spec.ts
+test
+*.md
+.env

@@ -1,0 +1,52 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**', '.github/workflows/backend-ci.yml']
+  pull_request:
+    paths: ['backend/**', '.github/workflows/backend-ci.yml']
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+      - run: npx prisma generate
+      - run: npm test                 # tests unitaires (Jest, Prisma mocké)
+      - run: npm run build            # compilation TypeScript
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: newdem
+          POSTGRES_PASSWORD: newdem
+          POSTGRES_DB: newdem
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U newdem"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://newdem:newdem@localhost:5432/newdem?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+      - run: npx prisma generate
+      - name: Appliquer le schéma + seed
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          psql "$DATABASE_URL" -f db/schema.sql
+          psql "$DATABASE_URL" -f db/seed.sql
+      - run: npm run test:int         # intégration PostGIS + e2e

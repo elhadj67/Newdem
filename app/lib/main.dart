@@ -63,8 +63,7 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const Text('Newdem',
-            style: TextStyle(color: NewdemColors.teal, fontWeight: FontWeight.w800)),
+        title: Image.asset('assets/logo.png', height: 30, fit: BoxFit.contain),
         actions: [
           IconButton(
             icon: const Icon(Icons.history, color: NewdemColors.muted),

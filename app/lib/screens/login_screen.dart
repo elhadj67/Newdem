@@ -26,11 +26,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 48),
-              const Text('Newdem',
-                  style: TextStyle(fontSize: 40, fontWeight: FontWeight.w800, color: NewdemColors.teal)),
-              const Text('On passe vous prendre.',
-                  style: TextStyle(color: NewdemColors.accent, fontStyle: FontStyle.italic)),
+              const SizedBox(height: 64),
+              Center(
+                child: Image.asset('assets/logo.png', width: 260, fit: BoxFit.contain),
+              ),
               const SizedBox(height: 40),
               if (!auth.codeSent) ...[
                 const Text('Votre numéro de téléphone', style: TextStyle(fontWeight: FontWeight.w600)),
